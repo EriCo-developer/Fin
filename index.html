@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Rear Fin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&family=Geist+Mono:wght@400;500&family=Doto:wght@900&display=swap" rel="stylesheet">
+<style>
+:root{--box:#1b1918;--box-hi:#24211f;--line:rgba(255,255,255,.07);--dim:#8f8a87;--sans:'Outfit',system-ui,sans-serif;--mono:'Geist Mono',ui-monospace,monospace;--dot:'Doto',ui-monospace,monospace;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#000;color:#fff;font-family:var(--sans)}
+body{min-height:100vh;display:flex;justify-content:center}
+body.locked{overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation;text-align:left}
+button:focus-visible,[role=slider]:focus-visible,canvas:focus-visible{outline:2px solid #fff;outline-offset:3px}
+[hidden]{display:none!important}
+.press{transition:transform .4s cubic-bezier(.3,1.7,.45,1)}
+.press:active,.press.pressed{transform:scale(.96);transition:transform .07s ease-out}
+.mono{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+
+/* data box, monotone */
+.box{position:relative;border-radius:30px;background:var(--box);box-shadow:inset 0 0 0 1px var(--line);padding:18px 18px 14px;min-width:0;display:flex;flex-direction:column}
+.box h3{margin:0;font-weight:400;font-size:24px;line-height:1.05;letter-spacing:-.01em}
+.box small{display:block;font-size:13px;color:var(--dim);font-weight:300;margin-top:2px}
+.box .val{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px}
+.box .val b{font-family:var(--dot);font-weight:900;font-size:clamp(36px,5.4vh,48px);line-height:1}
+.chip{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 6px;border-radius:12px;background:#0e0d0c;font-size:11px;color:#c9c4c0;min-width:34px}
+.wide{grid-column:1/-1}
+
+/* ---------- home ---------- */
+.app{width:100%;max-width:600px;padding:max(14px,env(safe-area-inset-top)) 8px calc(24px + env(safe-area-inset-bottom))}
+header{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;padding:10px 8px 12px}
+h1{margin:0;text-align:center;font-weight:300;font-size:42px;letter-spacing:-.01em}
+.ico{width:36px;height:36px;display:grid;place-items:center;border-radius:50%}
+#connect{background:#e9e8e4;color:#000;font-weight:600;font-size:20px;justify-content:center}
+#connect.on{background:transparent;box-shadow:inset 0 0 0 1.5px #fff}
+#connect.on span{display:none}
+#connect.on::after{content:"";width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 10px #fff}
+.burger{justify-self:end}.burger i{display:block;width:24px;height:2.4px;border-radius:2px;background:#fff;margin:5px 0}
+.live{position:relative;height:180px;margin-bottom:8px}
+.live canvas,.hero canvas{position:absolute;inset:0;width:100%;height:100%}
+.strip{position:relative;flex:none;height:64px;margin:0 0 6px;border-radius:24px;background:#0b0a0a;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.strip canvas{position:absolute;inset:0;width:100%;height:100%}
+.strip .mono{position:absolute;bottom:6px;font-size:9.5px}.strip .l{left:16px}.strip .r{right:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{height:178px}
+.tile canvas{display:block;width:100%;height:62px;margin-top:auto}
+.tile .ax{display:flex;justify-content:space-between;margin-top:6px}
+.tile .on{position:absolute;top:20px;right:18px;display:flex;align-items:center;gap:6px;opacity:0;transition:opacity .2s}
+.tile .on i{width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.tile.playing .on{opacity:1}
+.tile.off{height:92px;flex-direction:row;align-items:center;justify-content:space-between}
+
+/* ---------- page ---------- */
+.pop{position:fixed;inset:0;z-index:20;display:flex;justify-content:center;background:#000;pointer-events:none;opacity:0;transition:opacity .25s}
+.pop.open{pointer-events:auto;opacity:1}
+.page{width:100%;max-width:600px;height:100%;display:flex;flex-direction:column;padding:max(10px,env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom))}
+.bar{flex:none;display:flex;align-items:center;gap:14px;padding:2px 6px 6px}
+.back{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:var(--box);flex:none}
+.bar h2{margin:0;font-weight:400;font-size:28px;flex:1}
+.hero{position:relative;flex:1;min-height:150px;margin:0 -8px}
+.boxes{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.boxes .box{min-height:clamp(96px,14vh,124px)}
+#bSpeed:not(.wide) .top,#bGps .top{flex-direction:column;align-items:stretch;height:100%}
+#bSpeed:not(.wide) .num,#bGps .num{justify-content:space-between;margin-top:auto;padding-top:8px}
+/* speed: number + ruler */
+.speed .top{display:flex;justify-content:space-between;align-items:flex-start}
+.speed .num{display:flex;align-items:center;gap:10px}
+.speed .num b{font-family:var(--dot);font-weight:900;font-size:clamp(40px,6vh,54px);line-height:1}
+.ruler{position:relative;height:52px;margin:6px -8px 0;touch-action:none;cursor:ew-resize}
+.ruler canvas{width:100%;height:100%;display:block}
+.ruler .needle{position:absolute;left:50%;top:6px;width:2px;height:34px;margin-left:-1px;background:#fff;border-radius:2px}
+/* toggles */
+.power[aria-pressed=false] .val b{color:#5d5957}
+.lvlbars{display:flex;align-items:flex-end;gap:5px;height:30px}
+.lvlbars b{width:8px;border-radius:2px;background:#3a3633}.lvlbars b:nth-child(1){height:11px}.lvlbars b:nth-child(2){height:20px}.lvlbars b:nth-child(3){height:30px}
+.lvlbars b.on{background:#fff}
+.sw{width:34px;height:34px;border-radius:50%;background:var(--sel,#32e45a);box-shadow:0 0 0 3px #0e0d0c,0 0 0 4.5px rgba(255,255,255,.5),0 0 18px -2px var(--sel,#32e45a)}
+.tap{min-height:clamp(120px,18vh,170px)!important;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:radial-gradient(90% 80% at 50% 110%,rgba(50,228,90,.28),rgba(50,228,90,0) 70%),var(--box);transition:transform .35s cubic-bezier(.3,1.7,.45,1)}
+.tap:active,.tap.pressed{transform:scale(.97);transition:transform .06s}
+.tap.hit{box-shadow:inset 0 0 0 2px #32e45a}.tap.miss{box-shadow:inset 0 0 0 2px #ff3b2f}
+.brake{user-select:none;-webkit-user-select:none;touch-action:none;overflow:hidden;transition:transform .4s cubic-bezier(.3,1.7,.45,1)}
+.brake::before{content:"";position:absolute;inset:0;border-radius:30px;background:radial-gradient(80% 90% at 50% 110%,rgba(255,59,47,.9),rgba(255,59,47,0) 70%);opacity:0;transition:opacity .25s}
+.brake .val b{position:relative}
+.brake.on{transform:scale(.97);box-shadow:inset 0 0 0 1.5px #ff3b2f;transition:transform .07s}
+.brake.on::before,.brake.auto::before{opacity:1;transition:opacity .06s}
+.brake.auto{box-shadow:inset 0 0 0 1.5px #ff3b2f}
+.brake h3,.brake small{position:relative}
+/* colour sheet */
+.sheet{position:fixed;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));width:min(584px,calc(100% - 16px));z-index:30;border-radius:32px;padding:10px;background:var(--box);box-shadow:inset 0 0 0 1px var(--line),0 -20px 60px rgba(0,0,0,.6);
+  transform:translate(-50%,calc(100% + 40px));transition:transform .45s cubic-bezier(.2,1.15,.3,1);visibility:hidden}
+.sheet.open{transform:translate(-50%,0);visibility:visible}
+.sheet .pick{width:100%;aspect-ratio:1/1;max-height:52vh;border-radius:24px;overflow:hidden;touch-action:none;cursor:crosshair}
+.sheet .pick canvas{width:100%;height:100%;display:block}
+.sheet .foot{display:flex;justify-content:space-between;align-items:center;padding:12px 8px 4px}
+.sheet .done{height:46px;padding:0 24px;border-radius:999px;background:#fff;color:#111;font-size:17px;text-align:center}
+.menu{padding:10px;display:flex;flex-direction:column;gap:8px}
+.mrow{flex-direction:row;align-items:center;justify-content:space-between;min-height:86px;background:var(--box-hi)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;background:var(--box);box-shadow:inset 0 0 0 1px var(--line);border-radius:999px;padding:12px 20px;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:92vw;text-align:center}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion: reduce){.pop,.press,.sheet{transition:none}.tile .on i{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <button class="ico press" id="connect" aria-label="Connect to LED-Strip"><span>!</span></button>
+    <h1>Rear fin</h1>
+    <button class="ico burger" aria-label="Menu"><i></i><i></i><i></i></button>
+  </header>
+  <div class="strip"><canvas id="homeStrip" aria-label="The LED strip right now"></canvas><span class="mono l">Deck end</span><span class="mono r">Tail</span></div>
+  <div class="live"><canvas id="homeTrace" aria-label="Live trace of the strip"></canvas></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="pop" id="pop" aria-hidden="true">
+  <div class="page" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+    <div class="bar"><button class="back press" id="back" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><h2 id="pTitle">Riding</h2><span class="mono" id="cmd">A:1</span></div>
+    <div class="strip"><canvas id="pageStrip" aria-label="The LED strip right now"></canvas><span class="mono l">Deck end</span><span class="mono r">Tail</span></div>
+    <div class="hero"><canvas id="pageTrace" aria-label="Live trace of the strip"></canvas></div>
+    <div class="boxes">
+      <div class="box speed wide" id="bSpeed">
+        <div class="top"><div><h3>Speed</h3><small id="spSub">set to <span id="kmhSet">15</span> km/h</small><small id="gpsSub" hidden>from GPS</small></div><div class="num"><b id="kmh" aria-live="off">0</b><span class="chip">km/h<br>now</span></div></div>
+        <div class="ruler" id="ruler" role="slider" tabindex="0" aria-label="Speed" aria-valuemin="0" aria-valuemax="25" aria-valuenow="15"><canvas></canvas><i class="needle"></i></div>
+      </div>
+      <div class="box" id="bGps" hidden><div class="top" style="display:flex;justify-content:space-between;align-items:flex-start"><div><h3>GPS</h3><small id="gpsState">Waiting for permission</small></div><div class="num" style="display:flex;align-items:center;gap:10px"><b id="gpsAcc" style="font-family:var(--dot);font-weight:900;font-size:clamp(30px,4.6vh,40px)">–</b><span class="chip">± m</span></div></div></div>
+      <div class="box wide" id="bInfo"><div><h3 id="iTitle">Blink</h3><small id="iSub">red double blink</small></div><div class="val"><b id="iVal">2</b><span class="chip" id="iUnit">×</span></div></div>
+      <button class="box power press" id="power" aria-pressed="true"><h3>Light</h3><small id="pwSub">tap to turn off</small><span class="val"><b id="pwTxt">ON</b><span class="chip">fin</span></span></button>
+      <button class="box press" id="lvl"><h3>Brightness</h3><small id="lvTxt">Medium</small><span class="val"><span class="lvlbars"><b></b><b></b><b></b></span><span class="chip">tap</span></span></button>
+      <button class="box press" id="colbtn"><h3>Colour</h3><small id="hexSmall">#32E45A</small><span class="val"><span class="sw" id="sw"></span><span class="chip">pick</span></span></button>
+      <button class="box brake" id="brake"><h3>Brake</h3><small id="brSub">hold</small><span class="val"><b id="decel">0.0</b><span class="chip">m/s²</span></span></button>
+      <button class="box tap wide" id="tapBtn"><h3>Tap</h3><small>when the green light is inside the white zone</small><span class="val"><b>STOP</b><span class="chip">T:1</span></span></button>
+      <div class="box" id="bScore"><h3>Score</h3><small id="bestTxt">best 0</small><span class="val"><b id="score">0</b><span class="chip">hits</span></span></div>
+      <button class="box press" id="replay"><h3>Play again</h3><small>from the start</small><span class="val"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span class="chip">A</span></span></button>
+    </div>
+  </div>
+</div>
+<div class="sheet" id="sheet" aria-hidden="true" role="dialog" aria-label="Colour">
+  <div class="pick"><canvas id="pick" tabindex="0" aria-label="Colour: drag to pick, arrow keys to move"></canvas></div>
+  <div class="foot"><span class="mono" id="hexTxt">#32E45A</span><button class="done press" id="done">Done</button></div>
+</div>
+<div class="sheet menu" id="menu" aria-hidden="true" role="dialog" aria-label="Menu">
+  <button class="box press mrow" id="mConnect"><span><h3 id="mConTxt">Connect</h3><small id="mConSub">LED-Strip over Bluetooth</small></span><span class="chip">BLE</span></button>
+  <button class="box press mrow" id="mOff"><span><h3>Turn everything off</h3><small>sends A:0</small></span><span class="chip">off</span></button>
+  <button class="box press mrow" id="mVib"><span><h3>Vibration</h3><small id="mVibTxt">on</small></span><span class="chip">feel</span></button>
+  <button class="done press" id="mClose" style="width:100%;margin-top:8px">Close</button>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+let vib = true; const buzz = p => { if (!vib) return; try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('show'), 2200); }
+
+/* ---------- Bluetooth: same commands as the Arduino sketch ---------- */
+const SERVICE = 0xffe0, CHAR = 0xffe1, enc = new TextEncoder();
+let ch = null, dev = null, q = Promise.resolve();
+function send(cmd) { $('cmd').textContent = cmd; if (!ch) return; q = q.then(() => (ch.writeValueWithoutResponse ? ch.writeValueWithoutResponse(enc.encode(cmd)) : ch.writeValue(enc.encode(cmd)))).catch(e => console.warn(cmd, e)); }
+const thr = {}; function sendT(k, cmd) { const t = thr[k] || (thr[k] = { last: 0, h: 0 }), now = performance.now(); clearTimeout(t.h); if (now - t.last > 90) { t.last = now; send(cmd); } else t.h = setTimeout(() => { t.last = performance.now(); send(cmd); }, 90); }
+function setConn(on) { $('connect').classList.toggle('on', on); $('connect').setAttribute('aria-label', on ? 'Connected, tap to disconnect' : 'Connect to LED-Strip'); }
+async function connectBLE() {
+  buzz(10);
+  if (dev && dev.gatt.connected) { dev.gatt.disconnect(); return; }
+  if (!navigator.bluetooth) { toast('Open in Chrome to connect'); return; }
+  try {
+    dev = await navigator.bluetooth.requestDevice({ filters: [{ name: 'LED-Strip' }, { services: [SERVICE] }], optionalServices: [SERVICE] });
+    dev.addEventListener('gattserverdisconnected', () => { ch = null; setConn(false); toast('Disconnected'); });
+    // Android often fails the first GATT connect right after pairing; try a few times
+    let err = null;
+    for (let i = 0; i < 4 && !ch; i++) { try { toast(i ? `Connecting, try ${i + 1}` : 'Connecting'); const srv = await dev.gatt.connect(); await new Promise(r => setTimeout(r, 300)); ch = await (await srv.getPrimaryService(SERVICE)).getCharacteristic(CHAR); }
+      catch (e) { err = e; try { dev.gatt.disconnect(); } catch (_) {} await new Promise(r => setTimeout(r, 700)); } }
+    if (!ch) throw err || new Error('No answer from LED-Strip');
+    setConn(true); toast('Connected'); buzz([10, 40, 10]);
+    send(`B:${Math.round(S.bright * 2.55)}`); send(`S:${Math.round(S.kmh / 25 * 255)}`); send(`C:${S.col}`);
+  } catch (e) { if (e.name === 'NotFoundError') return; console.warn(e);
+    toast(/service|characteristic/i.test(e.message || '') ? 'Connected, but LED-Strip has no light service. Upload the new sketch' : /network|gatt|disconnect/i.test(e.message || '') ? "Couldn't connect. Disconnect LED-Strip in the phone's Bluetooth settings and try again" : `Couldn't connect: ${e.message || e.name}`); }
+}
+$('connect').addEventListener('click', connectBLE);
+setConn(false);
+/* ---------- menu ---------- */
+const menu = $('menu');
+function openMenu() { const on = !!(dev && dev.gatt.connected); $('mConTxt').textContent = on ? 'Disconnect' : 'Connect'; $('mConSub').textContent = on ? 'LED-Strip is connected' : (navigator.bluetooth ? 'LED-Strip over Bluetooth' : 'Open this page in Chrome to connect');
+  menu.classList.add('open'); menu.setAttribute('aria-hidden', 'false'); $('mConnect').focus(); }
+function closeMenu() { menu.classList.remove('open'); menu.setAttribute('aria-hidden', 'true'); }
+document.querySelector('.burger').addEventListener('click', () => { buzz(8); openMenu(); });
+$('mClose').addEventListener('click', closeMenu);
+$('mConnect').addEventListener('click', () => { closeMenu(); connectBLE(); });
+$('mOff').addEventListener('click', () => { closeMenu(); buzz(20); stop(); toast('Everything is off'); });
+$('mVib').addEventListener('click', () => { vib = !vib; $('mVibTxt').textContent = vib ? 'on' : 'off'; buzz(12); });
+
+/* ---------- state (the light preview reads it too) ---------- */
+const S = { anim: 0, kmh: 15, bright: 60, col: '32e45a', holding: false, manual: false, playing: 0 };
+
+const ANIMS = [
+  { id: 101, cmd: 1, name: 'Ride with phone', sub: 'speed from the phone\'s GPS', ride: true, gps: true, wide: true },
+  { id: 1, name: 'Riding', sub: 'one sweep per 4 m', ride: true },
+  { id: 2, name: 'Braking', sub: 'tail turns red', ride: true },
+  { id: 4, name: 'Available', sub: 'ready to ride', info: ['Sweep', 'back and forth three times', '3', '×'] },
+  { id: 5, name: 'Reserved', sub: 'on hold for someone', info: ['Comet', 'amber, tail to deck end', '2.4', 's'] },
+  { id: 6, name: 'Unlock', sub: 'start of the ride', replay: true, info: ['Fill', 'deck end to tail, two blinks', '0.8', 's'] },
+  { id: 10, name: 'Ride ended', sub: 'parked correctly', replay: true, info: ['Fill', 'tail to deck end, then breathes', '1.0', 's'] },
+  { id: 7, name: 'Slow zone', sub: 'speed is capped', info: ['Slow down', 'swoop turns blue', '6', 'km/h'] },
+  { id: 8, name: 'Battery', sub: 'charge left', info: ['Level', 'charge shown as a bar', '72', '%'] },
+  { id: 9, name: "Can't park", sub: 'not a parking spot', info: ['Blink', 'red double blink', '2', '×'] },
+  { id: 11, name: 'Service', sub: 'out of service', info: ['Blink', 'one short flash', '2', 's'] },
+  { id: 13, name: 'Showcase', sub: 'zones, rider light, full colour', info: ['Zones', 'three zones lit separately', '1', 'of 3'] },
+  { id: 14, name: 'Game', sub: 'stop the light in the zone', game: true },
+  { id: 12, name: 'Reveal', sub: 'for showing the product: swipe up, two flashes, then steady green', wide: true, replay: true, info: ['Reveal', 'dark, swipe up, two flashes, then green', 'ON', 'hold'] },
+];
+ANIMS.forEach(a => { if (a.cmd === undefined) a.cmd = a.id; });
+
+/* ---------- preview: same light code as the Arduino sketch (24 LEDs, 0 = tail) ---------- */
+const N = 18, TAU = Math.PI * 2, KP = 0.11, KB = 0.70;
+const cl = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t, sm = (a, b, x) => { const t = cl((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const G = [0.45, 1, 0.56], AM = [1, 0.6, 0.12], RD = [1, 0.13, 0.1], BL = [0.28, 0.62, 1], WH = [1, 1, 1], VI = [0.68, 0.46, 1];
+const mix = (a, b, t) => a.map((x, i) => lerp(x, b[i], t)), uOf = j => 1 - j / (N - 1);
+const blank = () => Array.from({ length: N }, () => [0, 0, 0]), add = (l, c, k) => { l[0] += c[0] * k; l[1] += c[1] * k; l[2] += c[2] * k; };
+function leg(ph, u) { ph -= Math.floor(ph); let pos, amp, back;
+  if (ph < KP) { const s = ph / KP; pos = s ** 1.25; amp = 1.6 * sm(0, 0.06, s); back = true; }
+  else if (ph < KP + KB) { const q = (ph - KP) / KB, e = q < 0.5 ? 2 * q * q : 1 - 2 * (1 - q) * (1 - q); pos = 1 - e; amp = 1.6 * (1 - sm(0, 0.06, q)); back = false; }
+  else { pos = 0; amp = 0; back = false; }
+  const d = u - pos, w = (back ? d > 0 : d < 0) ? Math.max(0.035, 0.8 / 17) : 0.13; return amp * Math.exp(-(d * d) / (w * w)); }
+const sim = { t: 0, xg: 0, brake: 0, v: 0, a: 0, hold: 0, bt: 0,
+  reset() { this.t = 0; this.xg = 0; this.brake = 0; this.v = 0; this.a = 0; this.hold = 0; this.bt = 0; },
+  swoop(dt, v, a, col) { this.xg += v * dt; const ride = sm(0.2, 1.2, v), bT = a < -0.35 ? cl((-a - 0.35) / 2.4, 0, 1) : 0;
+    this.brake += (bT - this.brake) * Math.min(1, dt * (bT > this.brake ? 16 : (v < 0.1 ? 12 : 3.5)));
+    const ph = this.xg / 4, br = 0.2 + 0.45 * (0.5 - 0.5 * Math.cos(TAU * this.t / 4)), L = blank();
+    // motion blur: sample the kick at several points along the distance covered this frame, so a fast push lights every LED it passes
+    const SUB = 6, dx = v * dt;
+    for (let j = 0; j < N; j++) { const u = uOf(j); let lk = 0; for (let q = 0; q < SUB; q++) lk = Math.max(lk, leg((this.xg - dx * (1 - q / (SUB - 1))) / 4, u)); const k = lk; add(L[j], col, k * ride);
+      const rear = sm(0.3, 0.75, u), dm = 1 - 0.75 * this.brake * rear; L[j] = L[j].map(x => x * dm); add(L[j], RD, this.brake * (0.25 + 1.1 * rear)); }
+    return L; },
+  ride(dt) { const vp = this.v; if (S.holding) { this.hold += dt; this.v = Math.max(0, this.v - (1.5 + 2 * sm(0, 1.2, this.hold)) * dt); } else { this.hold = 0; this.v += cl(S.kmh / 3.6 - this.v, -1.2 * dt, 1.4 * dt); }
+    if (dt > 0) this.a += ((this.v - vp) / dt - this.a) * Math.min(1, dt * 12); }
+};
+function ev(type, te) { const L = blank(); let w = 1;
+  for (let j = 0; j < N; j++) { const u = uOf(j);
+    if (type === 'unlock') { if (te < 0.8) { const f = te / 0.8; if (u <= f) add(L[j], G, 0.85); add(L[j], WH, 0.9 * Math.exp(-(((u - f) / 0.05) ** 2))); } else { const on = (te > 0.85 && te < 1) || (te > 1.1 && te < 1.25); add(L[j], G, on ? 1.15 : 0); } }
+    else if (type === 'park') { if (te < 1) { const f = te; if (u >= 1 - f) add(L[j], G, 0.85); add(L[j], WH, 0.9 * Math.exp(-(((u - (1 - f)) / 0.05) ** 2))); } else if (te < 1.5) add(L[j], G, 0.85); else add(L[j], G, 0.55 + 0.35 * Math.cos(TAU * (te - 1.5) / 0.5)); }
+    else { const m = te % 0.9, on = m < 0.14 || (m > 0.28 && m < 0.42); add(L[j], RD, on ? 1.1 : 0); } }
+  if (type === 'unlock' && te > 1.3) w = Math.max(0, 1 - (te - 1.3) / 0.2);
+  if (type === 'park' && te > 2.5) w = Math.max(0, 1 - (te - 2.5) / 0.3);
+  if (type === 'nopark' && te > 1.6) w = Math.max(0, 1 - (te - 1.6) / 0.2);
+  return { L, w }; }
+const blend = (L, e) => L.map((l, j) => mix(l, e.L[j], e.w));
+let beaconI = 0, beaconT = 0;
+// game (A:14): same rules and random sequence as the sketch
+const GM = { seed: 12345, pos: 0, dir: 1, speed: 0.6, zone: 0.7, width: 0.3, fx: 0, score: 0, best: 0, hit: false, tap: false,
+  rand() { this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0; return (this.seed >>> 8) / 16777216; },
+  reset() { this.seed = 12345; this.pos = 0; this.dir = 1; this.speed = 0.6; this.width = 0.3; this.zone = 0.2 + 0.6 * this.rand(); this.fx = 0; this.score = 0; } };
+function gameFrame(dt) {
+  const g = GM, L = blank();
+  if (g.tap && g.fx <= 0) { g.hit = Math.abs(g.pos - g.zone) <= g.width / 2;
+    if (g.hit) { g.score++; g.best = Math.max(g.best, g.score); g.speed = Math.min(3, g.speed * 1.15); g.width = Math.max(0.12, g.width * 0.9); } else { g.score = 0; g.speed = 0.6; g.width = 0.3; }
+    g.zone = 0.2 + 0.6 * g.rand(); g.fx = 0.6; }
+  g.tap = false;
+  if (g.fx > 0) { g.fx -= dt; const k = 0.6 - g.fx, on = g.hit ? k < 0.35 : (k < 0.12 || (k > 0.24 && k < 0.36)); if (on) L.forEach(l => add(l, g.hit ? G : RD, 1.2)); return L; }
+  g.pos += g.dir * g.speed * dt; if (g.pos > 1) { g.pos = 2 - g.pos; g.dir = -1; } if (g.pos < 0) { g.pos = -g.pos; g.dir = 1; }
+  const sp = Math.max(0.04, 0.8 / (N - 1));
+  L.forEach((l, j) => { const u = uOf(j); if (Math.abs(u - g.zone) <= g.width / 2) add(l, WH, 0.6); add(l, G, 1.4 * Math.exp(-(((u - g.pos) / sp) ** 2))); });
+  return L;
+}
+function frameLeds(dt) {
+  sim.t += dt; const t = sim.t, sw = S.col ? S.col.match(/../g).map(h => parseInt(h, 16) / 255) : G; let L = blank(), kmh = null, dec = 0;
+  switch (S.anim) {
+    case 1: sim.ride(dt); L = sim.swoop(dt, sim.v, sim.a, sw); kmh = sim.v * 3.6; dec = sim.a; break;
+    case 2: if (S.manual) { sim.ride(dt); L = sim.swoop(dt, sim.v, sim.a, sw); kmh = sim.v * 3.6; dec = sim.a; }
+      else { const te = t % 5, v0 = 15 / 3.6; let v, a; if (te < 1.88) { v = v0; a = 0; } else if (te < 3.88) { v = v0 * (1 - (te - 1.88) / 2); a = -v0 / 2; } else { v = 0; a = 0; } L = sim.swoop(dt, v, a, sw); kmh = v * 3.6; dec = a; } break;
+    case 3: { beaconT += dt; if (beaconT > 0.09) { beaconT = 0; beaconI = (beaconI + 1) % N; } const c = S.col ? sw : WH; [0, 1].forEach(k => add(L[(k + beaconI) % N], c, 1)); } break;
+    case 4: { const te = t % 3.2; let pos = -1; if (te < 1.8) { const k = Math.floor(te / 0.6), f = (te % 0.6) / 0.6; pos = k % 2 ? 1 - f : f; } const hi = mix(G, WH, 0.55); L.forEach((l, j) => { if (pos >= 0) add(l, hi, 1.2 * Math.exp(-(((uOf(j) - pos) / 0.12) ** 2))); }); } break;
+    case 5: { const sc = (t % 2.4) / 1.1, pos = sc * 1.1 - 0.05; L.forEach((l, j) => { if (sc < 1) { const d = uOf(j) - pos, w = d > 0 ? 0.05 : 0.14; add(l, AM, Math.exp(-(d * d) / (w * w))); } }); } break;
+    case 6: { const te = t % 5; if (te < 1.5) L = blend(L, ev('unlock', te)); } break;
+    case 7: { const te = t % 7.9; let a; if (te < 2) { kmh = 18; a = 0; } else if (te < 4.5) { kmh = lerp(18, 6, (te - 2) / 2.5); a = -(12 / 3.6) / 2.5 * 0.2; } else { kmh = 6; a = 0; } L = sim.swoop(dt, kmh / 3.6, a, mix(G, BL, sm(1.6, 2.6, te))); dec = a; } break;
+    case 8: { const idx = Math.floor(t / 2.5) % 3, lvl = [0.72, 0.36, 0.12][idx], col = [G, AM, RD][idx], te = t % 2.5, fill = Math.min(1, te / 0.6) * lvl, edge = Math.floor(fill * (N - 1));
+      L.forEach((l, j) => { const i = N - 1 - j; if (uOf(j) <= fill + 1e-6) add(l, col, i === edge && te > 0.6 ? 0.35 + 0.75 * (0.5 + 0.5 * Math.cos(TAU * (te - 0.6))) : 0.7); }); L.pct = Math.round(lvl * 100); } break;
+    case 9: L = blend(L, ev('nopark', t % 1.8)); break;
+    case 10: { const te = t % 5.5; if (te < 2.8) L = blend(L, ev('park', te)); } break;
+    case 13: { const tc = t % 12, ph = Math.floor(tc / 4), tp = tc - ph * 4, fade = sm(0, 0.3, tp) * (1 - sm(3.7, 4, tp));
+      L.forEach((l, j) => { const u = uOf(j);
+        if (ph === 0) { const z = u < 0.34 ? 0 : u < 0.67 ? 1 : 2; if (z === 0) add(l, G, 1); if (z === 1 && tp % 0.8 < 0.4) add(l, AM, 1.1); if (z === 2) add(l, RD, 0.3 + 0.9 * (0.5 - 0.5 * Math.cos(TAU * tp / 1.2))); }
+        else if (ph === 1) { const d = Math.abs(u - 0.5); if (d < 0.2) add(l, WH, 1.3 * (1 - sm(0.14, 0.2, d)) * sm(0, 0.6, tp)); }
+        else { const h = (u * 0.8 + tp * 0.35) % 1, k6 = h * 6; add(l, [cl(Math.abs(k6 - 3) - 1, 0, 1), cl(2 - Math.abs(k6 - 2), 0, 1), cl(2 - Math.abs(k6 - 4), 0, 1)], 1); }
+        l[0] *= fade; l[1] *= fade; l[2] *= fade; }); L.mode = ['Zones', 'Rider light', 'Full colour'][ph]; } break;
+    case 14: L = gameFrame(dt); break;
+    case 12: { const T0 = 1, TF = 1.8, fe = TF + 0.6, gap = fe + 0.35; L.forEach((l, j) => { const u = uOf(j);
+      if (t < T0) return; if (t < TF) { const f = (t - T0) / 0.8; if (u <= f) add(l, G, 0.9); add(l, WH, 0.9 * Math.exp(-(((u - f) / 0.05) ** 2))); return; }
+      if (t < fe) { const k = t - TF, on = (k > 0.15 && k < 0.3) || k > 0.45; if (on) add(l, mix(G, WH, 0.25), 1.25); return; }
+      if (t < gap) return; add(l, G, 1.3 * sm(0, 1.4, t - gap)); }); } break;
+    case 11: { const on = t % 2 < 0.3, core = 0.55 / (N - 1), glow = 1.6 / (N - 1); L.forEach((l, j) => { const d = Math.abs(uOf(j) - 0.5); if (d < core && on) add(l, VI, 0.7); }); } break;
+  }
+  return { L, kmh, dec };
+}
+
+
+
+/* ---------- trace: the strip over time, as glowing dot rows (deck end on top, tail at the bottom) ---------- */
+function Trace(cv, o) {
+  const cols = []; let acc = 0; const glow = document.createElement('canvas'), g = glow.getContext('2d');
+  return {
+    push(L, dt) { if (!this.hold) this.hold = L.map(l => l.slice()); else this.hold.forEach((h, j) => { const l = L[j]; if (Math.max(...l) > Math.max(...h)) this.hold[j] = l.slice(); });
+      acc += dt; if (acc < 1 / o.rate) return; acc = 0; cols.push(this.hold); this.hold = null; while (cols.length > o.max) cols.shift(); },
+    clear() { cols.length = 0; this.hold = null; },
+    draw() {
+      const dpr = Math.min(2, devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return; if (cv.width !== w * dpr || cv.height !== h * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+      const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+      const x0 = o.left, x1 = w - 14, y0 = o.top, y1 = h - o.bottom, nC = o.max, gx = (x1 - x0) / (nC - 1), gy = (y1 - y0) / (N - 1), B = 0.35 + 0.65 * S.bright / 100;
+      const at = (k, j) => [x1 - (cols.length - 1 - k) * gx, y0 + (N - 1 - j) * gy];
+      // 1. soft light under the dots: draw small, blur big
+      glow.width = Math.max(1, Math.round(w / 4)); glow.height = Math.max(1, Math.round(h / 4)); g.clearRect(0, 0, glow.width, glow.height);
+      for (let k = 0; k < cols.length; k++) for (let j = 0; j < N; j++) { const l = cols[k][j], m = Math.max(...l); if (m < 0.14) continue; const [x, y] = at(k, j), col = l.map(v => Math.round(Math.min(1, v / m) * 255));
+        g.fillStyle = `rgba(${col},${Math.min(1, m * B * 0.7)})`; g.fillRect(x / 4 - gx / 8, y / 4 - gy / 4, gx / 4 + 0.6, gy / 2); }
+      c.save(); c.globalCompositeOperation = 'lighter'; c.filter = `blur(${o.blur}px)`; c.drawImage(glow, 0, 0, w, h); c.filter = `blur(${o.blur / 3}px)`; c.globalAlpha = 0.7; c.drawImage(glow, 0, 0, w, h); c.restore();
+      // 2. hairlines, one per sample, faintly tinted by what lit up
+      for (let k = 0; k < cols.length; k++) { let m = 0, col = [255, 255, 255]; for (const l of cols[k]) { const mm = Math.max(...l); if (mm > m) { m = mm; col = l.map(v => Math.round(Math.min(1, v / mm) * 255)); } }
+        const [x] = at(k, 0); c.fillStyle = m * B > 0.15 ? `rgba(${col},${0.03 + 0.16 * Math.min(1, m * B)})` : 'rgba(255,255,255,.025)'; c.fillRect(Math.round(x), y0, 1, y1 - y0); }
+      // 3. the dots
+      for (let k = 0; k < cols.length; k++) for (let j = 0; j < N; j++) { const l = cols[k][j], m = Math.max(...l) * B, [x, y] = at(k, j);
+        if (m < 0.14) { if (k % 3 === 0 && j % 2 === 0) { c.fillStyle = 'rgba(255,255,255,.07)'; c.fillRect(x - 0.6, y - 0.6, 1.2, 1.2); } continue; }
+        const col = l.map(v => Math.round(lerp(Math.min(1, v / Math.max(...l)), 1, Math.min(0.75, m * 0.45)) * 255)); c.fillStyle = `rgba(${col},${Math.min(1, 0.35 + m)})`; c.beginPath(); c.arc(x, y, 0.9 + 1.4 * Math.min(1, m), 0, TAU); c.fill(); }
+      // 4. labels
+      c.font = '400 10px "Geist Mono", monospace'; c.fillStyle = 'rgba(170,170,170,.6)'; c.textBaseline = 'middle';
+      c.fillText('DECK', 6, y0); c.fillText('TAIL', 6, y1); c.textAlign = 'right'; c.fillText('NOW', x1 + 4, y1 + 14); c.fillText(`−${(nC / o.rate).toFixed(0)} S`, x0 + 22, y1 + 14); c.textAlign = 'left';
+      c.fillStyle = 'rgba(170,170,170,.3)'; for (let j = 0; j < N; j += 6) { const y = y0 + j * gy; c.fillRect(x0 - 12, y, 7, 1); }
+    }
+  };
+}
+// the strip as the LEDs show it: same output curve as the sketch (gamma 2.2), brightness applied
+function drawStrip(cv, L) {
+  const dpr = Math.min(2, devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; if (!w) return; if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  const B = S.bright / 100, x0 = 18, x1 = w - 18, gx = (x1 - x0) / N, cy = h * 0.42, lw = gx * 0.62, lh = 14;
+  for (let i = 0; i < N; i++) { const l = L[N - 1 - i].map(v => Math.pow(cl(v / 1.3, 0, 1), 2.2) * B), m = Math.max(...l), x = x0 + gx * (i + .5);
+    if (m > 0.004) { const p = Math.pow(m, 1 / 2.2), col = l.map(v => Math.round(Math.pow(v / m, 1 / 2.2) * 255));
+      c.save(); c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(x, cy, 0, x, cy, gx * 1.6); g.addColorStop(0, `rgba(${col},${0.5 * p})`); g.addColorStop(1, `rgba(${col},0)`); c.fillStyle = g; c.fillRect(x - gx * 1.6, 0, gx * 3.2, h); c.restore();
+      c.fillStyle = `rgba(${col.map(v => Math.round(lerp(v, 255, 0.35 * p)))},${0.25 + 0.75 * p})`; }
+    else c.fillStyle = '#1c1a19';
+    c.beginPath(); c.roundRect(x - lw / 2, cy - lh / 2, lw, lh, 4); c.fill(); }
+}
+const homeTrace = Trace($('homeTrace'), { rate: 24, max: 84, left: 44, top: 14, bottom: 24, blur: 10 });
+const pageTrace = Trace($('pageTrace'), { rate: 24, max: 96, left: 48, top: 18, bottom: 26, blur: 14 });
+
+/* ---------- home tiles: monotone boxes, each with a small sample of its pattern ---------- */
+function sample(id, secs, n) { const keep = { ...S }; S.anim = id; S.manual = false; S.holding = false; S.kmh = 15; sim.reset(); const out = [], dt = 1 / 60, every = Math.round(secs * 60 / n); let hold = null;
+  for (let k = 0; k < secs * 60 + 60; k++) { const r = frameLeds(dt); if (k < 60) continue; hold = hold ? hold.map((h, j) => Math.max(...r.L[j]) > Math.max(...h) ? r.L[j].slice() : h) : r.L.map(l => l.slice()); if ((k - 59) % every === 0) { out.push(hold); hold = null; } }
+  Object.assign(S, keep); sim.reset(); return out.slice(0, n); }
+const grid = $('grid');
+ANIMS.forEach(a => { const b = document.createElement('button'); b.className = 'box tile press' + (a.wide ? ' wide' : ''); b.dataset.id = a.id;
+  b.innerHTML = `<span class="on mono"><i></i>live</span><h3>${a.name}</h3><small>${a.sub}</small><canvas></canvas><span class="ax mono"><span>0</span><span>${a.id === 8 ? '7.5' : a.id === 7 ? '8' : a.id === 12 ? '5' : a.id === 13 ? '12' : '4'} s</span></span>`;
+  grid.appendChild(b); a.el = b; a.samp = sample(a.cmd, a.id === 8 ? 7.5 : a.id === 7 ? 8 : a.id === 12 ? 5 : a.id === 13 ? 12 : 4, a.wide ? 84 : 40);
+  // the tile's tint = average colour of its lit LEDs
+  let t = [0, 0, 0], n = 0; a.samp.forEach(col => col.forEach(l => { const m = Math.max(...l); if (m > 0.2) { t = t.map((x, i) => x + l[i] / m); n++; } })); const tc = n ? t.map(x => Math.round(x / n * 255)) : [200, 200, 200];
+  b.style.background = `radial-gradient(120% 70% at 100% 100%,rgba(${tc},.28),rgba(${tc},0) 70%),radial-gradient(80% 50% at 0% 0%,rgba(${tc},.10),rgba(${tc},0) 70%),var(--box)`; b.style.boxShadow = `inset 0 0 0 1px rgba(${tc},.22)`; });
+const off = document.createElement('button'); off.className = 'box tile off wide press'; off.innerHTML = '<div><h3>All off</h3><small>every light on the fin</small></div><span class="chip">A:0</span>'; grid.appendChild(off);
+off.addEventListener('click', () => { buzz(20); stop(); toast('Everything is off'); });
+function drawSamples() { ANIMS.forEach(a => { const cv = a.el.querySelector('canvas'), dpr = Math.min(2, devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; if (!w) return; cv.width = w * dpr; cv.height = h * dpr;
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); const nC = a.samp.length, gx = w / nC, rows = 12, gy = h / rows;
+  for (let k = 0; k < nC; k++) for (let r = 0; r < rows; r++) { const j = Math.round(r / (rows - 1) * (N - 1)), l = a.samp[k][N - 1 - j], mm = Math.max(...l), v = Math.min(1, mm / 1.1), x = gx * (k + .5), y = gy * (r + .5);
+    if (v > 0.15) { const col = l.map(q => Math.round(lerp(Math.min(1, q / mm), 1, 0.3 * v) * 255)); c.fillStyle = `rgba(${col},${0.45 + 0.55 * v})`; c.beginPath(); c.arc(x, y, 0.9 + 1.3 * v, 0, TAU); c.fill(); } else { c.fillStyle = 'rgba(255,255,255,.08)'; c.beginPath(); c.arc(x, y, 0.8, 0, TAU); c.fill(); } } }); }
+grid.addEventListener('click', e => { const b = e.target.closest('.tile'); if (!b || b === off) return; buzz(12); openPage(ANIMS.find(a => a.id === +b.dataset.id), b); });
+function markPlaying() { ANIMS.forEach(a => a.el.classList.toggle('playing', a.id === S.playing)); }
+function play(a) { S.anim = a.cmd; S.playing = a.id; S.manual = false; S.holding = false; sim.reset(); send(`A:${a.cmd}`); markPlaying(); if (a.gps) gpsStart(); else gpsStop(); }
+function stop() { S.anim = 0; S.playing = 0; sim.reset(); send('A:0'); markPlaying(); gpsStop(); }
+
+/* ---------- ruler ---------- */
+function Ruler(el, o) {
+  const cv = el.querySelector('canvas'); let v = o.value, vel = 0, drag = null, step = Math.round(v), raf = 0;
+  function draw() { const dpr = Math.min(2, devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; if (!w) return; if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h); const cx = w / 2, span = Math.ceil(cx / o.px) + 2;
+    for (let u = Math.floor(v - span); u <= Math.ceil(v + span); u++) { if (u < o.min || u > o.max) continue; const x = cx + (u - v) * o.px, d = Math.abs(x - cx) / cx, a = Math.max(0, 1 - d * d), major = u % o.major === 0;
+      c.fillStyle = `rgba(255,255,255,${a * (major ? .9 : .45)})`; const th = major ? 22 : 11; c.fillRect(Math.round(x) - (major ? 1 : .5), 23 - th / 2, major ? 2 : 1, th);
+      if (major) { c.font = '400 10px "Geist Mono", monospace'; c.textAlign = 'center'; c.fillStyle = `rgba(160,155,150,${a})`; c.fillText(u, x, 48); } } }
+  function set(nv, emit = true) { v = Math.max(o.min, Math.min(o.max, nv)); const s = Math.round(v); if (s !== step) { step = s; buzz(4); if (emit) o.onChange(s); } el.setAttribute('aria-valuenow', s); draw(); }
+  function animTo(t) { const s0 = v, t0 = performance.now(); const f = now => { const k = Math.min(1, (now - t0) / 220); set(s0 + (t - s0) * (1 - Math.pow(1 - k, 3))); if (k < 1) raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); }
+  function coast() { if (drag) return; vel *= 0.92; set(v + vel); if (Math.abs(vel) > 0.01 && v > o.min && v < o.max) raf = requestAnimationFrame(coast); else animTo(Math.round(v)); }
+  el.addEventListener('pointerdown', e => { cancelAnimationFrame(raf); el.setPointerCapture(e.pointerId); drag = { x: e.clientX, v }; vel = 0; });
+  el.addEventListener('pointermove', e => { if (!drag) return; const nv = drag.v - (e.clientX - drag.x) / o.px; vel = (nv - v) * 0.9; set(nv); });
+  const end = () => { if (!drag) return; drag = null; raf = requestAnimationFrame(coast); }; el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  let tgt = null; el.addEventListener('keydown', e => { const st = e.shiftKey ? o.major : 1, d = (e.key === 'ArrowRight' || e.key === 'ArrowUp') ? st : (e.key === 'ArrowLeft' || e.key === 'ArrowDown') ? -st : 0; if (!d) return; e.preventDefault(); cancelAnimationFrame(raf);
+    tgt = Math.max(o.min, Math.min(o.max, (tgt === null ? Math.round(v) : tgt) + d)); animTo(tgt); clearTimeout(el._t); el._t = setTimeout(() => tgt = null, 400); });
+  addEventListener('resize', draw); return { draw, set: (nv, emit) => { cancelAnimationFrame(raf); step = Math.round(nv); set(nv, emit); } };
+}
+const ruler = Ruler($('ruler'), { min: 0, max: 25, value: S.kmh, px: 18, major: 5, onChange: v => { S.kmh = v; $('kmhSet').textContent = v; sendT('S', `S:${Math.round(v / 25 * 255)}`); } });
+
+/* ---------- page ---------- */
+const pop = $('pop'); let cur = null, opener = null;
+function openPage(a, from) {
+  cur = a; opener = from; $('pTitle').textContent = a.name;
+  $('bSpeed').hidden = !a.ride; $('bSpeed').classList.toggle('wide', !a.gps); $('ruler').hidden = !!a.gps; $('bGps').hidden = !a.gps; $('spSub').hidden = !!a.gps; $('gpsSub').hidden = !a.gps; $('colbtn').hidden = !a.ride; $('brake').hidden = !a.ride; $('bInfo').hidden = !!a.ride || !!a.game; $('replay').hidden = !a.replay; $('tapBtn').hidden = !a.game; $('bScore').hidden = !a.game; ['bScore', 'power', 'lvl', 'tapBtn'].forEach((id, k) => $(id).style.order = a.game ? k + 1 : ''); $('lvl').classList.toggle('wide', !!a.game); if (a.game) { GM.reset(); $('score').textContent = 0; }
+  $('brSub').textContent = a.gps ? 'automatic, or hold' : 'hold';
+  if (a.info) { $('iTitle').textContent = a.info[0]; $('iSub').textContent = a.info[1]; $('iVal').textContent = a.info[2]; $('iUnit').textContent = a.info[3]; }
+    ruler.set(S.kmh, false); $('kmhSet').textContent = S.kmh; pageTrace.clear(); play(a); setPower(true);
+  pop.classList.add('open'); pop.setAttribute('aria-hidden', 'false'); document.body.classList.add('locked'); setTimeout(() => { ruler.draw(); $('back').focus(); }, 60);
+}
+function closePage() { setBrake(false); closeSheet(); pop.classList.remove('open'); pop.setAttribute('aria-hidden', 'true'); document.body.classList.remove('locked'); if (opener) opener.focus(); cur = null; }
+$('back').addEventListener('click', () => { buzz(8); closePage(); });
+document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (menu.classList.contains('open')) closeMenu(); else if ($('sheet').classList.contains('open')) closeSheet(); else if (cur) closePage(); });
+function setPower(on) { $('power').setAttribute('aria-pressed', on); $('pwTxt').textContent = on ? 'ON' : 'OFF'; $('pwSub').textContent = on ? 'tap to turn off' : 'tap to turn on'; }
+$('power').addEventListener('click', () => { const on = $('power').getAttribute('aria-pressed') !== 'true'; buzz(on ? [12, 40, 12] : 20); setPower(on); on ? play(cur) : stop(); });
+$('replay').addEventListener('click', () => { buzz(12); play(cur); setPower(true); });
+
+/* ---------- game: tap ---------- */
+function tapGame() { if (!cur || !cur.game) return; buzz(15); GM.tap = true; send('T:1'); }
+$('tapBtn').addEventListener('pointerdown', e => { e.preventDefault(); tapGame(); });
+$('tapBtn').addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); tapGame(); } });
+let lastScoreFx = 0;
+
+/* ---------- brightness: Low, Medium, High ---------- */
+const LV = [{ n: 'Low', v: 25 }, { n: 'Medium', v: 60 }, { n: 'High', v: 100 }]; let lvl = 1;
+function setLevel(i) { lvl = i; S.bright = LV[i].v; sendT('B', `B:${Math.round(S.bright * 2.55)}`); $('lvTxt').textContent = LV[i].n; $('lvl').querySelectorAll('.lvlbars b').forEach((b, k) => b.classList.toggle('on', k <= i)); $('lvl').setAttribute('aria-label', `Brightness ${LV[i].n}, tap to change`); }
+$('lvl').addEventListener('click', () => { buzz(10); setLevel((lvl + 1) % 3); }); setLevel(1);
+
+/* ---------- brake: hold ---------- */
+const brk = $('brake'); let bz = 0;
+function setBrake(on) { if (brk.classList.contains('on') === on) return; brk.classList.toggle('on', on); S.holding = on; if (on && S.anim === 2) S.manual = true;
+  clearInterval(bz); if (on) { buzz(30); bz = setInterval(() => buzz(14), 150); } if (!on && typeof GPS !== 'undefined' && GPS.braking) { S.holding = true; return; } send(`H:${on ? 1 : 0}`); }
+brk.addEventListener('pointerdown', e => { e.preventDefault(); brk.setPointerCapture(e.pointerId); setBrake(true); });
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => brk.addEventListener(t, () => setBrake(false)));
+brk.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); setBrake(true); } });
+brk.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') setBrake(false); });
+brk.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ---------- colour: soft dot-grid field with the full spectrum ---------- */
+const pk = $('pick'); let sel = { x: 0.33, y: 0.85 };
+const hsv = (h, s) => { const f = n => { const k = (n + h * 6) % 6; return 1 - s * Math.max(0, Math.min(k, 4 - k, 1)); }; return [f(5), f(3), f(1)]; };
+const colAt = (x, y) => hsv(x, y).map(v => Math.round(v * 255));
+const softAt = (x, y) => { const c = hsv(x, 0.12 + 0.5 * y), dk = 1 - 0.32 * Math.pow(y, 1.6); return c.map(v => Math.round(v * dk * 238)); };
+function drawField() {
+  const cv = pk, dpr = Math.min(2, devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight; if (!w) return; if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const o = document.createElement('canvas'); o.width = 24; o.height = 24; const og = o.getContext('2d'), im = og.createImageData(24, 24);
+  for (let j = 0; j < 24; j++) for (let i = 0; i < 24; i++) { const col = softAt(i / 23 * 0.999, j / 23), k = (j * 24 + i) * 4; im.data[k] = col[0]; im.data[k + 1] = col[1]; im.data[k + 2] = col[2]; im.data[k + 3] = 255; }
+  og.putImageData(im, 0, 0); c.imageSmoothingQuality = 'high'; c.filter = 'blur(6px)'; c.drawImage(o, -8, -8, w + 16, h + 16); c.filter = 'none';
+  const n = 7, m = 8, gx = w / n, gy = h / m, si = Math.min(n - 1, Math.floor(sel.x * n)), sj = Math.min(m - 1, Math.floor(sel.y * m));
+  for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) { const x = gx * (i + .5), y = gy * (j + .5), hit = i === si || j === sj; c.fillStyle = hit ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.32)'; c.beginPath(); c.arc(x, y, hit ? 2.8 : 1.9, 0, TAU); c.fill(); }
+  c.lineWidth = 2.5; c.strokeStyle = '#fff'; c.beginPath(); c.arc(gx * (si + .5), gy * (sj + .5), 9, 0, TAU); c.stroke();
+}
+function setSel(x, y) { sel = { x: Math.max(0, Math.min(0.999, x)), y: Math.max(0, Math.min(1, y)) }; const hex = colAt(sel.x, sel.y).map(v => v.toString(16).padStart(2, '0')).join('');
+  S.col = hex; sendT('C', `C:${hex}`); $('sw').style.setProperty('--sel', '#' + hex); $('hexTxt').textContent = $('hexSmall').textContent = '#' + hex.toUpperCase(); drawField(); }
+const fromEv = e => { const r = pk.getBoundingClientRect(); setSel((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); };
+pk.addEventListener('pointerdown', e => { pk.setPointerCapture(e.pointerId); buzz(6); fromEv(e); });
+pk.addEventListener('pointermove', e => { if (pk.hasPointerCapture(e.pointerId)) fromEv(e); });
+pk.addEventListener('keydown', e => { const st = 1 / 28, m = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[e.key]; if (m) { e.preventDefault(); setSel(sel.x + m[0], sel.y + m[1]); } });
+function openSheet() { $('sheet').classList.add('open'); $('sheet').setAttribute('aria-hidden', 'false'); requestAnimationFrame(() => { drawField(); pk.focus({ preventScroll: true }); }); }
+function closeSheet() { $('sheet').classList.remove('open'); $('sheet').setAttribute('aria-hidden', 'true'); }
+$('colbtn').addEventListener('click', () => { buzz(10); openSheet(); });
+$('done').addEventListener('click', () => { buzz(10); closeSheet(); $('colbtn').focus(); });
+$('sw').style.setProperty('--sel', '#' + S.col);
+
+/* ---------- ride with phone: GPS speed drives the sweep, slowing down triggers the brake ---------- */
+// GPS gives speed about once a second. It is smoothed, readings under 3 km/h count as standing still,
+// and it is sent as S:0-255 (0-25 km/h), the same command as the speed scale. The sketch ramps between readings.
+// Braking: when GPS speed falls faster than 1.2 m/s², or the motion sensor feels a firm jolt while the speed is falling,
+// the app sends H:1, and H:0 once the speed stops falling.
+const GPS = { watch: null, kmh: 0, last: null, prevFix: null, acc: null, dv: 0, jolt: 0, braking: false, wake: null, motionOn: false };
+const hav = (a, b) => { const R = 6371000, r = Math.PI / 180, dl = (b.lat - a.lat) * r, dn = (b.lon - a.lon) * r, x = Math.sin(dl / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
+function gpsState(t) { $('gpsState').textContent = t; }
+async function keepAwake() { try { if ('wakeLock' in navigator && !GPS.wake) { GPS.wake = await navigator.wakeLock.request('screen'); GPS.wake.addEventListener('release', () => GPS.wake = null); } } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && GPS.watch !== null) keepAwake(); });
+function onMotion(e) { const a = e.acceleration; if (!a || a.x === null) return; const m = Math.hypot(a.x, a.y, a.z); GPS.jolt += (m - GPS.jolt) * 0.2; }
+async function motionStart() { if (GPS.motionOn) return; try { if (typeof DeviceMotionEvent !== 'undefined' && DeviceMotionEvent.requestPermission) { if (await DeviceMotionEvent.requestPermission() !== 'granted') return; }
+  addEventListener('devicemotion', onMotion); GPS.motionOn = true; } catch (e) {} }
+function setAutoBrake(on) { if (GPS.braking === on) return; GPS.braking = on; if (!brk.classList.contains('on')) { S.holding = on; send(`H:${on ? 1 : 0}`); } }
+function onFix(p) {
+  const now = p.timestamp || Date.now(), c = p.coords, fix = { lat: c.latitude, lon: c.longitude, t: now };
+  let ms = (c.speed !== null && !isNaN(c.speed)) ? c.speed : null;
+  if (ms === null && GPS.prevFix) { const dt = (now - GPS.prevFix.t) / 1000; if (dt > 0.4) ms = hav(GPS.prevFix, fix) / dt; }
+  GPS.prevFix = fix; GPS.acc = c.accuracy; $('gpsAcc').textContent = Math.round(c.accuracy);
+  if (ms === null) { gpsState('Getting a fix'); return; }
+  let kmh = ms * 3.6; if (kmh < 3 || (c.accuracy > 40 && kmh < 8)) kmh = 0; kmh = Math.min(25, kmh);
+  const prev = GPS.kmh, dt = GPS.last ? Math.max(0.2, (now - GPS.last) / 1000) : 1; GPS.kmh = prev + (kmh - prev) * 0.6; GPS.last = now;
+  GPS.dv = (GPS.kmh - prev) / 3.6 / dt;
+  if (GPS.dv < -1.2 || (GPS.dv < -0.3 && GPS.jolt > 2.5)) setAutoBrake(true); else if (GPS.dv > -0.2 || GPS.kmh < 1) setAutoBrake(false);
+  S.kmh = Math.round(GPS.kmh); send(`S:${Math.round(GPS.kmh / 25 * 255)}`);
+  gpsState(c.accuracy <= 10 ? 'Good signal' : c.accuracy <= 30 ? 'Weak signal' : 'Poor signal, speed is rough');
+}
+function onGpsErr(e) { gpsState(e.code === 1 ? 'Location is blocked, allow it in the browser' : e.code === 3 ? 'No signal yet' : 'No location'); }
+function gpsStart() {
+  if (GPS.watch !== null) return;
+  if (!('geolocation' in navigator)) { gpsState('This browser has no location'); return; }
+  if (!isSecureContext) { gpsState('Needs an https address to read location'); return; }
+  gpsState('Waiting for signal'); GPS.kmh = 0; GPS.last = null; GPS.prevFix = null; S.kmh = 0;
+  GPS.watch = navigator.geolocation.watchPosition(onFix, onGpsErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+  keepAwake(); motionStart();
+}
+function gpsStop() { if (GPS.watch !== null) { navigator.geolocation.clearWatch(GPS.watch); GPS.watch = null; } setAutoBrake(false); if (GPS.wake) { GPS.wake.release().catch(() => {}); GPS.wake = null; } }
+
+/* ---------- loop ---------- */
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let last = performance.now();
+function loop(now) {
+  const dt = cl((now - last) / 1000, 0, 0.05), d = reduced ? 0.016 : dt; last = now;
+  const r = frameLeds(d), tr = cur ? pageTrace : homeTrace; tr.push(r.L, d); tr.draw(); drawStrip($(cur ? 'pageStrip' : 'homeStrip'), r.L);
+  if (cur) { brk.classList.toggle('auto', !!(cur.gps && GPS.braking)); if (cur.ride) { $('decel').textContent = Math.max(0, -(r.dec || 0)).toFixed(1); if (r.kmh !== null) $('kmh').textContent = Math.round(r.kmh); }
+    if (cur.id === 13 && r.L.mode) { const m = { 'Zones': ['Zones', 'three zones lit separately', 1], 'Rider light': ['Rider light', 'very bright white to light up the rider', 2], 'Full colour': ['Full colour', 'every colour the LEDs can make', 3] }[r.L.mode]; $('iTitle').textContent = m[0]; $('iSub').textContent = m[1]; $('iVal').textContent = m[2]; }
+    if (cur.game) { $('score').textContent = GM.score; $('bestTxt').textContent = `best ${GM.best}`; const tb = $('tapBtn'); tb.classList.toggle('hit', GM.fx > 0 && GM.hit); tb.classList.toggle('miss', GM.fx > 0 && !GM.hit); }
+    if (cur.id === 8 && r.L.pct) $('iVal').textContent = r.L.pct; if (cur.id === 7 && r.kmh !== null) $('iVal').textContent = Math.round(r.kmh); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(() => { drawSamples(); requestAnimationFrame(loop); });
+addEventListener('resize', drawSamples);
+})();
+</script>
+</body>
+</html>
